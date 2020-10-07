@@ -25,6 +25,7 @@
 
 #define LED_TIME_BLINK 300 //ms
 #define BUTTON_DEBOUNCE 40 //ms
+#define BUTTON_DEBOUNCE_SHORT 5 //ms
 #define LED_TIME_SHORT 100 //ms
 #define LED_TIME_LONG 1000 //ms
 
@@ -59,15 +60,15 @@ void blikac(void)
 void tlacitka(void)
 {
 	static uint32_t debounce1 = 0;
+	static uint32_t debounce2 = 0;
 	static uint32_t off_time = 0;
+	static uint16_t shiftbounce = 0xFFFF;
 
+	//S2
 	if (Tick > debounce1 + BUTTON_DEBOUNCE)
 	{
 		static uint32_t old_s2;
-		uint32_t new_s2 = GPIOC->IDR & (1<<0);
-
-		static uint32_t old_s1;
-		uint32_t new_s1 = GPIOC->IDR & (1<<1);
+		uint32_t new_s2 = GPIOC->IDR & (1<<0); //S2 - PC0
 
 		if (old_s2 && !new_s2) // falling edge
 		{
@@ -76,19 +77,29 @@ void tlacitka(void)
 		}
 
 		old_s2 = new_s2;
-
-		if (old_s1 && !new_s1) // falling edge
-		{
-			off_time = Tick + LED_TIME_LONG;
-			GPIOB->BSRR = (1<<0);
-		}
-
-		old_s1 = new_s1;
 	}
 
+	//S1
+	if(Tick > debounce2 + BUTTON_DEBOUNCE_SHORT)
+	{
+		shiftbounce <<= 1;
+
+		if (GPIOC->IDR & (1<<1)) //S2 - PC1
+		{
+			shiftbounce |= 1;
+		}
+
+		if(shiftbounce == 0x7FFF) //test of raising edge
+		{
+			off_time = Tick + LED_TIME_LONG;
+			GPIOB->BSRR = (1<<0); //LED2 - PB0
+		}
+	}
+
+	//LED2
 	if (Tick > off_time)
 	{
-		GPIOB->BRR = (1<<0);
+		GPIOB->BRR = (1<<0); //Turn LED2 off
 	}
 }
 
@@ -112,7 +123,8 @@ int main(void)
 	NVIC_EnableIRQ(EXTI0_1_IRQn); // enable EXTI0_1
 */
 
-	while(1){
+	while(1)
+	{
 		blikac();
 		tlacitka();
 	}
