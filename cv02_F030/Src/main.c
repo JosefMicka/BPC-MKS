@@ -24,6 +24,8 @@
 #endif
 
 #define LED_TIME_BLINK 300 //ms
+#define BUTTON_DEBOUNCE 40 //ms
+#define LED_TIME_SHORT 100 //ms
 
 static volatile uint32_t Tick = 0;
 
@@ -43,7 +45,8 @@ void EXTI0_1_IRQHandler(void)
 
 void blikac(void)
 {
-	static uint32_t delay;
+	static uint32_t delay = 0;
+
 	if (Tick > delay + LED_TIME_BLINK)
 	{
 		GPIOA->ODR ^= (1<<4); //LED1 PA4
@@ -51,6 +54,31 @@ void blikac(void)
 	}
 }
 
+
+void tlacitka(void)
+{
+	static uint32_t debounce1 = 0;
+	static uint32_t off_time = 0;
+
+	if (Tick > debounce1 + BUTTON_DEBOUNCE)
+	{
+		static uint32_t old_s2;
+		uint32_t new_s2 = GPIOC->IDR & (1<<0);
+
+		if (old_s2 && !new_s2) // falling edge
+		{
+			off_time = Tick + LED_TIME_SHORT;
+			GPIOB->BSRR = (1<<0);
+		}
+
+		old_s2 = new_s2;
+	}
+
+	if (Tick > off_time)
+	{
+		GPIOB->BRR = (1<<0);
+	}
+}
 
 int main(void)
 {
@@ -74,5 +102,6 @@ int main(void)
 
 	while(1){
 		blikac();
+		tlacitka();
 	}
 }
