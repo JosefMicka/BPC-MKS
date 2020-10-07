@@ -26,6 +26,7 @@
 #define LED_TIME_BLINK 300 //ms
 #define BUTTON_DEBOUNCE 40 //ms
 #define LED_TIME_SHORT 100 //ms
+#define LED_TIME_LONG 1000 //ms
 
 static volatile uint32_t Tick = 0;
 
@@ -65,6 +66,9 @@ void tlacitka(void)
 		static uint32_t old_s2;
 		uint32_t new_s2 = GPIOC->IDR & (1<<0);
 
+		static uint32_t old_s1;
+		uint32_t new_s1 = GPIOC->IDR & (1<<1);
+
 		if (old_s2 && !new_s2) // falling edge
 		{
 			off_time = Tick + LED_TIME_SHORT;
@@ -72,6 +76,14 @@ void tlacitka(void)
 		}
 
 		old_s2 = new_s2;
+
+		if (old_s1 && !new_s1) // falling edge
+		{
+			off_time = Tick + LED_TIME_LONG;
+			GPIOB->BSRR = (1<<0);
+		}
+
+		old_s1 = new_s1;
 	}
 
 	if (Tick > off_time)
