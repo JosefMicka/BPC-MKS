@@ -84,7 +84,7 @@ void tlacitka(void)
 	{
 		shiftbounce <<= 1;
 
-		if (GPIOC->IDR & (1<<1)) //S2 - PC1
+		if (GPIOC->IDR & (1<<1)) //S1 - PC1
 		{
 			shiftbounce |= 1;
 		}
