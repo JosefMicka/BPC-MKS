@@ -3,3 +3,11 @@
 /cv01_F030/Debug
 /cv01_F401
 /cv02_F030/Debug
+/cv03_F030/Debug
+
+*.o
+*.su
+*.bin
+*.elf
+*.list
+*.map
