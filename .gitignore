@@ -6,8 +6,14 @@
 /cv03_F030/Debug
 
 *.o
+*.d
 *.su
 *.bin
 *.elf
 *.list
 *.map
+
+*.settings
+*.mk
+*.ioc
+*.launch
