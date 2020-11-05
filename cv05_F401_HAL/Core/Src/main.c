@@ -23,8 +23,9 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
-#include "stdio.h"
-#include "string.h"
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -42,10 +43,13 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+I2C_HandleTypeDef hi2c1;
+
 UART_HandleTypeDef huart2;
 DMA_HandleTypeDef hdma_usart2_rx;
 
 /* USER CODE BEGIN PV */
+#define EEPROM_ADDR 0xA0
 #define CMD_BUFFER_LEN 64
 
 #define RX_BUFFER_LEN 64
@@ -59,6 +63,7 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_DMA_Init(void);
 static void MX_USART2_UART_Init(void);
+static void MX_I2C1_Init(void);
 /* USER CODE BEGIN PFP */
 
 int _write(int file, char const *buf, int n)
@@ -126,8 +131,47 @@ static void uart_process_command(char *cmd)
 		printf("\n");
 
 	}
-	else
-		printf("Neznamy prikaz!");
+	else if (strcasecmp(token, "READ") == 0) {
+		token = strtok(NULL, " ");
+		uint16_t addr = atoi(token);
+		uint8_t value;
+		HAL_I2C_Mem_Read(&hi2c1, EEPROM_ADDR, addr, I2C_MEMADD_SIZE_16BIT, &value, 1, 1000);
+
+		printf("Adresa 0x%04X = 0x%02X\n", addr, value);
+	}
+	else if (strcasecmp(token, "WRITE") == 0) {
+		token = strtok(NULL, " ");
+		uint16_t addr = atoi(token);
+		token = strtok(NULL, " ");
+		uint8_t value = atoi(token);
+		HAL_I2C_Mem_Write(&hi2c1, EEPROM_ADDR, addr, I2C_MEMADD_SIZE_16BIT, &value, 1, 1000);
+
+		/* Check if the EEPROM is ready for a new operation */
+		while (HAL_I2C_IsDeviceReady(&hi2c1, EEPROM_ADDR, 300, 1000) == HAL_TIMEOUT) {}
+
+		printf("OK\n");
+	}
+	else if (strcasecmp(token, "DUMP") == 0) {
+		uint8_t value[0xF];
+		HAL_I2C_Mem_Read(&hi2c1, EEPROM_ADDR, 0, I2C_MEMADD_SIZE_16BIT, value, 0xF, 1000);
+
+		uint16_t i = 0;
+
+		/*8 values on the line*/
+		for(; i < 0x8; i++){
+			printf("%02X ", value[i]);
+		}
+		printf("\n");
+
+		/*8 values on the line*/
+		for(; i <= 0xF; i++){
+			printf("%02X ", value[i]);
+		}
+		printf("\n");
+	}
+	else{
+		printf("Neznamy prikaz!\n");
+	}
 }
 
 static void uart_byte_available(uint8_t c)
@@ -180,6 +224,7 @@ int main(void)
   MX_GPIO_Init();
   MX_DMA_Init();
   MX_USART2_UART_Init();
+  MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
 
   HAL_UART_Receive_DMA(&huart2, uart_rx_buf, RX_BUFFER_LEN);
@@ -249,6 +294,40 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
+}
+
+/**
+  * @brief I2C1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_I2C1_Init(void)
+{
+
+  /* USER CODE BEGIN I2C1_Init 0 */
+
+  /* USER CODE END I2C1_Init 0 */
+
+  /* USER CODE BEGIN I2C1_Init 1 */
+
+  /* USER CODE END I2C1_Init 1 */
+  hi2c1.Instance = I2C1;
+  hi2c1.Init.ClockSpeed = 100000;
+  hi2c1.Init.DutyCycle = I2C_DUTYCYCLE_2;
+  hi2c1.Init.OwnAddress1 = 0;
+  hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
+  hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
+  hi2c1.Init.OwnAddress2 = 0;
+  hi2c1.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
+  hi2c1.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
+  if (HAL_I2C_Init(&hi2c1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN I2C1_Init 2 */
+
+  /* USER CODE END I2C1_Init 2 */
+
 }
 
 /**
